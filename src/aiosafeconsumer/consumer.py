@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import time
+from dataclasses import dataclass
 from typing import Generic
 
 from .processor import DataProcessor, DataProcessorSettings
@@ -11,6 +12,7 @@ from .worker import Worker, WorkerSettings
 log = logging.getLogger(__name__)
 
 
+@dataclass
 class ConsumerWorkerSettings(Generic[DataType], WorkerSettings):
     source_class: type[DataSource[DataType]]
     source_settings: DataSourceSettings

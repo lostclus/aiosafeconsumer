@@ -23,3 +23,5 @@ venv
 
 # macOS
 .DS_Store
+
+/testproject

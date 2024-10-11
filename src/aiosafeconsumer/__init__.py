@@ -6,6 +6,7 @@ from .processor import (
     DataTransformerSettings,
 )
 from .source import DataSource, DataSourceSettings
+from .types import DataType
 from .worker import Worker, WorkerSettings
 from .workerpool import WorkerDef, WorkerPool, WorkerPoolSettings
 
@@ -18,6 +19,7 @@ __all__ = [
     "DataProcessorSettings",
     "DataSource",
     "DataSourceSettings",
+    "DataType",
     "DataTransformer",
     "DataTransformerSettings",
     "Worker",

@@ -119,8 +119,7 @@ class IntProcessor(DataProcessor[int]):
 
 @dataclass
 class StrToIntTransformerSettings(DataTransformerSettings[str, int]):
-    target_processor_class = IntProcessor
-    target_processor_settings = DataProcessorSettings()
+    pass
 
 
 class StrToIntTransformer(DataTransformer[str, int]):
@@ -143,18 +142,42 @@ class StrToIntTransformer(DataTransformer[str, int]):
 
 @dataclass
 class StrConsumerSettings(ConsumerWorkerSettings[str]):
-    source_class = StrSource
-    source_settings = DataSourceSettings()
-    processor_class = StrProcessor
-    processor_settings = DataProcessorSettings()
+    pass
 
 
 @dataclass
 class StrConsumerWithTansformerSettings(ConsumerWorkerSettings[str]):
-    source_class = StrSource
-    source_settings = DataSourceSettings()
-    processor_class = StrToIntTransformer
-    processor_settings = StrToIntTransformerSettings()
+    pass
+
+
+@pytest.fixture
+def consumer_settings() -> StrConsumerSettings:
+    return StrConsumerSettings(
+        source_class=StrSource,
+        source_settings=DataSourceSettings(),
+        processor_class=StrProcessor,
+        processor_settings=DataProcessorSettings(),
+    )
+
+
+@pytest.fixture
+def transformer_settings() -> StrToIntTransformerSettings:
+    return StrToIntTransformerSettings(
+        target_processor_class=IntProcessor,
+        target_processor_settings=DataProcessorSettings(),
+    )
+
+
+@pytest.fixture
+def consumer_with_transformer_settings(
+    transformer_settings: StrToIntTransformerSettings,
+) -> StrConsumerWithTansformerSettings:
+    return StrConsumerWithTansformerSettings(
+        source_class=StrSource,
+        source_settings=DataSourceSettings(),
+        processor_class=StrToIntTransformer,
+        processor_settings=transformer_settings,
+    )
 
 
 @pytest.fixture
@@ -168,20 +191,21 @@ def processor() -> StrProcessor:
 
 
 @pytest.fixture
-def transformer() -> StrToIntTransformer:
-    settings = StrToIntTransformerSettings()
-    return StrToIntTransformer(settings)
+def transformer(
+    transformer_settings: StrToIntTransformerSettings,
+) -> StrToIntTransformer:
+    return StrToIntTransformer(transformer_settings)
 
 
 @pytest.fixture
-def consumer() -> ConsumerWorker:
-    settings = StrConsumerSettings()
-    consumer = ConsumerWorker(settings)
+def consumer(consumer_settings: StrConsumerSettings) -> ConsumerWorker:
+    consumer = ConsumerWorker(consumer_settings)
     return consumer
 
 
 @pytest.fixture
-def consumer_with_transformer() -> ConsumerWorker:
-    settings = StrConsumerWithTansformerSettings()
-    consumer = ConsumerWorker(settings)
+def consumer_with_transformer(
+    consumer_with_transformer_settings: StrConsumerWithTansformerSettings,
+) -> ConsumerWorker:
+    consumer = ConsumerWorker(consumer_with_transformer_settings)
     return consumer

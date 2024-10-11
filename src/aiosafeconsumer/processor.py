@@ -24,6 +24,7 @@ class DataProcessor(Generic[DataType], ABC):
         raise NotImplementedError
 
 
+@dataclass
 class DataTransformerSettings(Generic[DataType, TargetDataType], DataProcessorSettings):
     target_processor_class: type[DataProcessor[TargetDataType]]
     target_processor_settings: DataProcessorSettings

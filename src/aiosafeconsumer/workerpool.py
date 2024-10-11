@@ -17,6 +17,10 @@ class WorkerDef:
     worker_group: str = DEFAULT_GROUP
     concurrency: int = 1
 
+    @property
+    def worker_type(self) -> str:
+        return self.worker_class.worker_type
+
 
 @dataclass
 class WorkerPoolSettings:
@@ -39,7 +43,7 @@ class WorkerPool:
         self.exclude_types = exclude_types
         self.burst = burst
         self.worker_defs = {}
-        self._interrupt = asyncio.Event()
+        self._terminate = asyncio.Event()
 
     def _filter_workers(self) -> None:
         self.worker_defs = {}
@@ -54,7 +58,7 @@ class WorkerPool:
                 )
                 continue
 
-            worker_type = worker_def.worker_class.worker_type
+            worker_type = worker_def.worker_type
 
             if self.exclude_types is not None and worker_type in self.exclude_types:
                 log.debug(f"Skipping {worker_def} because worker type in exclude types")
@@ -113,7 +117,7 @@ class WorkerPool:
                 for worker_num in range(concurrency):
                     task = pool[worker_type][worker_num]
 
-                    if self._interrupt.is_set():
+                    if self._terminate.is_set():
                         if task is not None:
                             log.info(f"Terminating worker {worker_type}[#{worker_num}]")
                             task.cancel()
@@ -139,18 +143,18 @@ class WorkerPool:
                                 has_run_task = True
 
             if self.burst and not has_run_task:
-                self._interrupt.set()
+                self._terminate.set()
 
             all_tasks = [
                 task for task in sum(list(pool.values()), []) if task is not None
             ]
 
-            if self._interrupt.is_set():
+            if self._terminate.is_set():
                 await asyncio.gather(*all_tasks, return_exceptions=True)
                 break
 
             await asyncio.wait(
-                all_tasks + [asyncio.create_task(self._interrupt.wait())],
+                all_tasks + [asyncio.create_task(self._terminate.wait())],
                 return_when=asyncio.FIRST_COMPLETED,
             )
 
@@ -159,4 +163,4 @@ class WorkerPool:
         await self._run_workers()
 
     def terminate(self) -> None:
-        self._interrupt.set()
+        self._terminate.set()
