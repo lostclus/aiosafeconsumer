@@ -143,8 +143,8 @@ class KafkaSource(Generic[DataType], DataSource[DataType]):
                         continue
 
                     if (
-                        self.settings.max_partitions
-                        and len(consumed_tps) >= self.settings.max_partitions
+                        self.settings.max_read_partitions
+                        and len(consumed_tps) >= self.settings.max_read_partitions
                     ):
                         skipped_tps.add(tp)
                         continue
