@@ -21,15 +21,13 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
 ]
 requires-python = ">= 3.10"
-dependencies = [
-    "aiokafka",
-    "croniter",
-]
+dependencies = ["croniter"]
 
 [project.urls]
 Repository = "http://github.com/lostclus/aiosafeconsumer"
 
 [project.optional-dependencies]
+kafka = ["aiokafka"]
 tests = [
     "pytest",
     "pytest-asyncio",
