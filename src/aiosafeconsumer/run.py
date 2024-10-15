@@ -274,6 +274,8 @@ def run(
 
     if args.pool_settings:
         value = _import_name(args.pool_settings)
+        if callable(value):
+            value = value()
         assert isinstance(value, WorkerPoolSettings)
         pool_settings = value
 
