@@ -151,8 +151,7 @@ class KafkaSource(Generic[DataType], DataSource[DataType]):
 
                     consumed_tps.add(tp)
 
-                    for msg in messages:
-                        yield msg.value
+                    yield [msg.value for msg in messages]
 
                 if listener.revoked:
                     count = sum(
