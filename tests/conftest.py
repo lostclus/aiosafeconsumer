@@ -25,30 +25,46 @@ _LOGGING = {
         "context_injecting": {
             "()": "aiosafeconsumer.logging.ContextInjectingFilter",
         },
+        "is_worker_context": {
+            "()": "aiosafeconsumer.logging.IsWorkerContextFilter",
+        },
+        "is_not_worker_context": {
+            "()": "aiosafeconsumer.logging.IsWorkerContextFilter",
+            "invert": True,
+        },
     },
     "formatters": {
-        "simple": {
+        "common": {
+            "format": "[%(levelname)s/%(name)s] %(message)s",
+        },
+        "worker": {
             "()": "aiosafeconsumer.logging.ExtraFieldsFormatter",
-            "fmt": "%(worker_type)s[%(worker_id)s]: %(message)s",
+            "fmt": "[%(levelname)s/%(worker_type)s-%(worker_id)s] %(message)s",
         },
     },
     "handlers": {
-        "console": {
+        "common": {
             "level": "DEBUG",
             "class": "logging.StreamHandler",
-            "formatter": "simple",
-            "filters": ["context_injecting"],
+            "formatter": "common",
+            "filters": ["is_not_worker_context"],
+        },
+        "worker": {
+            "level": "DEBUG",
+            "class": "logging.StreamHandler",
+            "formatter": "worker",
+            "filters": ["is_worker_context", "context_injecting"],
         },
     },
     "root": {
         "level": "DEBUG",
-        "handlers": ["console"],
+        "handlers": ["common"],
         "propagate": True,
     },
     "loggers": {
         "aiosafeconsumer": {
             "level": "DEBUG",
-            "handlers": ["console"],
+            "handlers": ["common", "worker"],
             "propagate": True,
         },
     },

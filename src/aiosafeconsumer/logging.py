@@ -17,11 +17,28 @@ class ContextInjectingFilter(Filter):
     def filter(self, record: LogRecord) -> bool:
         for field, var in CONTEXT_FIELDS.items():
             if not hasattr(record, field):
-                try:
-                    setattr(record, field, var.get())
-                except LookupError:
-                    pass
+                value = var.get()
+                if value is not None:
+                    try:
+                        setattr(record, field, value)
+                    except LookupError:
+                        pass
         return True
+
+
+class IsWorkerContextFilter(Filter):
+    def __init__(self, invert: bool = False) -> None:
+        super().__init__()
+        self.invert = invert
+
+    def filter(self, record: LogRecord) -> bool:
+        result = (
+            worker_type_context.get() is not None
+            and worker_id_context.get() is not None
+        )
+        if self.invert:
+            result = not result
+        return result
 
 
 class ExtraFieldsJSONEncoder(json.JSONEncoder):
