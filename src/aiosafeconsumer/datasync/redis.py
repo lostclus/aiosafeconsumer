@@ -110,7 +110,9 @@ class RedisWriter(Generic[DataType], DataWriter[DataType]):
             if del_versions:
                 pipe.hdel(settings.versions_key, *del_versions)
             if update_versions:
-                pipe.hset(settings.versions_key, mapping=update_versions)  # type: ignore
+                pipe.hset(
+                    settings.versions_key, mapping=update_versions  # type: ignore
+                )
             pipe.expire(settings.versions_key, settings.versions_expire)
             await pipe.execute()
 

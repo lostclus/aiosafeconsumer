@@ -34,15 +34,15 @@ class BaseWorker(Worker):
 
 
 class Worker1(BaseWorker):
-    pass
+    worker_type = "worker1"
 
 
 class Worker2(BaseWorker):
-    pass
+    worker_type = "worker2"
 
 
 class Worker3(BaseWorker):
-    pass
+    worker_type = "worker3"
 
 
 @pytest.fixture
@@ -85,9 +85,9 @@ async def test_worker_pool_run(
     with pytest.raises(CancelledError):
         await task
 
-    assert counter["Worker1"] > 1
-    assert counter["Worker2"] > 1
-    assert counter["Worker3"] > 1
+    assert counter["worker1"] > 1
+    assert counter["worker2"] > 1
+    assert counter["worker3"] > 1
 
 
 @pytest.mark.asyncio
@@ -101,7 +101,7 @@ async def test_worker_pool_run_burst(
     await pool.run()
 
     assert counter == {
-        "Worker1": 1,
-        "Worker2": 1,
-        "Worker3": 1,
+        "worker1": 1,
+        "worker2": 1,
+        "worker3": 1,
     }
