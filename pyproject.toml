@@ -28,10 +28,13 @@ Repository = "http://github.com/lostclus/aiosafeconsumer"
 
 [project.optional-dependencies]
 kafka = ["aiokafka"]
+redis = ["redis[hiredis]"]
 tests = [
+    "aiokafka",
     "pytest",
     "pytest-asyncio",
     "pytest-cov",
+    "redis[hiredis]",
 ]
 
 [build-system]
@@ -40,7 +43,6 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 where = ["src/"]
-include = ["aiosafeconsumer"]
 
 [tool.setuptools.package-data]
 aiosafeconsumer = ["py.typed"]
