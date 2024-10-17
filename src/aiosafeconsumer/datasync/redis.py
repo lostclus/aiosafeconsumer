@@ -95,10 +95,15 @@ class RedisWriter(Generic[DataType], DataWriter[DataType]):
                     + [str(v) for v in upsert_versions.keys()]
                 )
                 enum_ids = set([str(v) for v in use_enum_rec.ids])
-                del_records.extend(
-                    [f"{settings.key_prefix}{obj_id}" for obj_id in cur_ids - enum_ids]
+                ids_to_delete = cur_ids - enum_ids
+                log.debug(
+                    f"Accept enumerate message with {len(enum_ids)} object IDs,"
+                    f" {len(ids_to_delete)} records will be deleted"
                 )
-                del_versions.extend([str(obj_id) for obj_id in cur_ids - enum_ids])
+                del_records.extend(
+                    [f"{settings.key_prefix}{obj_id}" for obj_id in ids_to_delete]
+                )
+                del_versions.extend([str(obj_id) for obj_id in ids_to_delete])
 
         async with redis.pipeline(transaction=True) as pipe:
             if update_records:
@@ -117,6 +122,6 @@ class RedisWriter(Generic[DataType], DataWriter[DataType]):
             await pipe.execute()
 
         log.debug(
-            f"{len(update_records)} was updated and {len(del_records)} was deleted"
-            " from Redis"
+            f"{len(update_records)} records was added/updated and {len(del_records)}"
+            " records was deleted"
         )
