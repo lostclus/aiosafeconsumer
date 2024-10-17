@@ -169,13 +169,16 @@ class KafkaSource(Generic[DataType], DataSource[DataType]):
                     )
 
                 if not self.settings.enable_auto_commit:
+                    log.debug("Waiting for commit event")
                     await self.commit_event.wait()
 
                     no_commit_tps = listener.revoked | skipped_tps
                     for tp, messages in consumed_data.items():
                         if tp not in no_commit_tps:
+                            new_offset = messages[-1].offset + 1
+                            log.debug(f"Commiting {tp} to {new_offset}")
                             try:
-                                await consumer.commit({tp: messages[-1].offset + 1})
+                                await consumer.commit({tp: new_offset})
                             except KafkaError as error:
                                 self.log_error(f"Kafka error: {error}")
                                 consumer_errors_count += 1
