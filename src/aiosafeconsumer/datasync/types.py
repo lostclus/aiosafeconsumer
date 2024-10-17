@@ -4,11 +4,12 @@ from typing import NamedTuple, TypeAlias
 
 
 class EventType(str, Enum):
-    CREATE = "create"
-    UPDATE = "update"
-    DELETE = "delete"
-    REFRESH = "refresh"
-    ENUMERATE = "enumerate"
+    CREATE = "create"  # object was createed
+    UPDATE = "update"  # object was updated
+    DELETE = "delete"  # object was deleted
+    REFRESH = "refresh"  # nothing happened to the object, just refresh data
+    ENUMERATE = "enumerate"  # enumerate IDs of existing objects
+    EOS = "eos"  # end of stream
 
 
 Version: TypeAlias = int | str | datetime
