@@ -113,8 +113,6 @@ class RedisWriter(Generic[DataType], DataWriter[DataType]):
                 enum_ids: set[bytes] = set(
                     self._obj_version_key(obj_id) for obj_id in use_enum_rec.ids
                 )
-                # print("*** cur_ids", cur_ids)
-                # print("*** enum_ids", enum_ids)
                 ids_to_delete: set[bytes] = cur_ids - enum_ids
                 log.debug(
                     f"Accept enumerate message with {len(enum_ids)} object IDs,"
