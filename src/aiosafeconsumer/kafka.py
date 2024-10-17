@@ -53,6 +53,7 @@ class KafkaSourceSettings(Generic[DataType], DataSourceSettings):
     topics: list[str]
     bootstrap_servers: list[str]
     value_deserializer: Callable[[bytes], DataType]
+    group_id: str | None = None
     enable_auto_commit: bool = False
     max_read_partitions: int | None = None
     getmany_max_records: int | None = None
@@ -81,7 +82,7 @@ class KafkaSource(Generic[DataType], DataSource[DataType]):
         return servers
 
     def get_default_group_id(self) -> str:
-        return self.__class__.__name__
+        return self.settings.group_id or self.__class__.__name__
 
     def create_kafka_consumer(self) -> AIOKafkaConsumer:
         kwargs = {
