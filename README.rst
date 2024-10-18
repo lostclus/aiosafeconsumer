@@ -18,8 +18,7 @@ Current implementations:
 
 * `KafkaSource` - read data from Kafka
 * `RedisWriter` - synchronize data in Redis
-* `WorkerPool` - controller to setup and run workers in parallel. Can handle
-worker failures and restarts workers when it fails or exits.
+* `WorkerPool` - controller to setup and run workers in parallel. Can handle worker failures and restarts workers when it fails or exits.
 
 Recommend producer library: https://github.com/lostclus/django-kafka-streamer
 
