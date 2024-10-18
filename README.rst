@@ -1,6 +1,16 @@
 aiosafeconsumer
 ===============
 
+.. image:: https://github.com/lostclus/aiosafeconsumer/actions/workflows/tests.yml/badge.svg
+    :target: https://github.com/lostclus/aiosafeconsumer/actions
+
+.. image:: https://img.shields.io/pypi/v/aiosafeconsumer.svg
+    :target: https://pypi.org/project/aiosafeconsumer/
+    :alt: Current version on PyPi
+
+.. image:: https://img.shields.io/pypi/pyversions/aiosafeconsumer
+    :alt: PyPI - Python Version
+
 aiosafeconsumer is a library that provides abstractions and some implementations
 to consume data somewhere and process it.
 
