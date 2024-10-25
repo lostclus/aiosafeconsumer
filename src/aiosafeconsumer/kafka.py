@@ -181,8 +181,10 @@ class KafkaSource(Generic[DataType], DataSource[DataType]):
                             try:
                                 await consumer.commit({tp: new_offset})
                             except KafkaError as error:
-                                self.log_error(f"Kafka error: {error}")
+                                log.error(f"Kafka error: {error}")
                                 consumer_errors_count += 1
+
+                    self.commit_event.clear()
 
         finally:
             if consumer is not None:
