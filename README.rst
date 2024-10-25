@@ -14,6 +14,11 @@ aiosafeconsumer
 aiosafeconsumer is a library that provides abstractions and some implementations
 to consume data somewhere and process it.
 
+Features:
+
+* Based on AsyncIO
+* Type annotated
+
 Abstractions:
 
 * `DataSource` - waits for data and returns batch of records using Python generator
