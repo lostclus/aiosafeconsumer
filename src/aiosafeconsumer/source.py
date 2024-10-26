@@ -22,7 +22,7 @@ class DataSource(Generic[DataType], ABC):
     def __str__(self) -> str:
         return self.__class__.__name__
 
-    async def read(self) -> AsyncGenerator[list[DataType], None]:
+    async def read(self) -> AsyncGenerator[list[DataType], None]:  # pragma: no cover
         """
         Returns async generator to read batches of items.
         """

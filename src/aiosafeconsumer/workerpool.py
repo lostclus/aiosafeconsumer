@@ -2,6 +2,7 @@ import asyncio
 import logging
 from collections.abc import Sequence
 from dataclasses import dataclass
+from datetime import timedelta
 
 from .worker import Worker, WorkerSettings
 
@@ -34,14 +35,20 @@ class WorkerPool:
     def __init__(
         self,
         settings: WorkerPoolSettings,
+        only_workers: Sequence[str] | None = None,
+        exclude_workers: Sequence[str] | None = None,
         include_groups: Sequence[str] | None = None,
-        exclude_types: Sequence[str] | None = None,
+        override_concurrency: int | None = None,
         burst: bool = False,
+        sleep_on_task_exit: timedelta = timedelta(seconds=10),
     ) -> None:
         self.settings = settings
+        self.only_workers = only_workers
+        self.exclude_workers = exclude_workers
         self.include_groups = include_groups
-        self.exclude_types = exclude_types
+        self.override_concurrency = override_concurrency
         self.burst = burst
+        self.sleep_on_task_exit = sleep_on_task_exit
         self.worker_defs = {}
         self._terminate = asyncio.Event()
 
@@ -49,6 +56,20 @@ class WorkerPool:
         self.worker_defs = {}
 
         for worker_def in self.settings.workers:
+            worker_type = worker_def.worker_type
+
+            if self.only_workers is not None and worker_type not in self.only_workers:
+                log.debug(
+                    f"Skipping {worker_def} because worker type not in only workers"
+                )
+                continue
+
+            if self.exclude_workers is not None and worker_type in self.exclude_workers:
+                log.debug(
+                    f"Skipping {worker_def} because worker type in exclude workers"
+                )
+                continue
+
             if (
                 self.include_groups is not None
                 and worker_def.worker_group not in self.include_groups
@@ -58,13 +79,9 @@ class WorkerPool:
                 )
                 continue
 
-            worker_type = worker_def.worker_type
-
-            if self.exclude_types is not None and worker_type in self.exclude_types:
-                log.debug(f"Skipping {worker_def} because worker type in exclude types")
-                continue
-
-            assert worker_type not in self.worker_defs
+            assert (
+                worker_type not in self.worker_defs
+            ), "Duplicate worker in settings.workers"
             self.worker_defs[worker_type] = worker_def
 
     async def _run_workers(self) -> None:
@@ -72,8 +89,9 @@ class WorkerPool:
         run_count: dict[str, list[int]] = {}
 
         for worker_type, worker_def in self.worker_defs.items():
-            pool[worker_type] = [None] * worker_def.concurrency
-            run_count[worker_type] = [0] * worker_def.concurrency
+            concurrency = self.override_concurrency or worker_def.concurrency
+            pool[worker_type] = [None] * concurrency
+            run_count[worker_type] = [0] * concurrency
 
         while True:
             has_done_task = False
@@ -110,7 +128,7 @@ class WorkerPool:
                         has_run_task = True
 
             if has_done_task and not self.burst:
-                await asyncio.sleep(10)
+                await asyncio.sleep(self.sleep_on_task_exit.total_seconds())
 
             for worker_type, worker_def in self.worker_defs.items():
                 concurrency = len(pool[worker_type])

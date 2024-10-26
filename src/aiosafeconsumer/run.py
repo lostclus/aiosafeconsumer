@@ -40,7 +40,7 @@ def _parser() -> argparse.ArgumentParser:
         "--task",
         "-t",
         metavar="TASK_TYPE",
-        dest="tasks",
+        dest="only_workers",
         action="append",
         help="Run only specified tasks. To see available tasks use --list-tasks",
     )
@@ -48,7 +48,7 @@ def _parser() -> argparse.ArgumentParser:
         "--exclude-task",
         "-e",
         metavar="TASK_TYPE",
-        dest="exclude_types",
+        dest="exclude_workers",
         action="append",
         help="Exclude tasks",
     )
@@ -120,8 +120,10 @@ def _create_pool(
 ) -> WorkerPool:
     pool = pool_class(
         pool_settings,
+        only_workers=args.only_workers,
+        exclude_workers=args.exclude_workers,
         include_groups=args.include_groups,
-        exclude_types=args.exclude_types,
+        override_concurrency=args.concurrency,
         burst=args.burst,
     )
     return pool
