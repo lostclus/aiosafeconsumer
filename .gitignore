@@ -24,4 +24,5 @@ venv
 # macOS
 .DS_Store
 
-/testproject
+/.local
+/.bash_history

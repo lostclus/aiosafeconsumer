@@ -2,6 +2,7 @@ import asyncio
 import itertools
 import logging
 import logging.config
+import os
 from collections.abc import AsyncGenerator
 from dataclasses import dataclass
 
@@ -17,6 +18,10 @@ from aiosafeconsumer import (
     DataTransformer,
     DataTransformerSettings,
 )
+
+if not os.getenv("KAFKA_BOOTSTRAP_SERVERS") and not os.getenv("REDIS_URL"):
+    collect_ignore = ["real_kafka_redis"]
+
 
 _LOGGING = {
     "version": 1,
@@ -55,11 +60,6 @@ _LOGGING = {
             "formatter": "worker",
             "filters": ["is_worker_context", "context_injecting"],
         },
-    },
-    "root": {
-        "level": "DEBUG",
-        "handlers": ["common"],
-        "propagate": True,
     },
     "loggers": {
         "aiosafeconsumer": {
