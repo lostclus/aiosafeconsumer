@@ -49,9 +49,16 @@ def json_to_namedtuple_deserializer(
         for f in class_._fields:
             f_type = class_.__annotations__[f]
             if typing.get_origin(f_type) is types.UnionType:
-                f_type = typing.get_args(f_type)[0]
+                f_type_args = typing.get_args(f_type)
+                f_type = f_type_args[0]
 
-            v = data[f]
+            if f in data:
+                v = data[f]
+            elif f in class_._field_defaults:
+                v = class_._field_defaults[f]
+            else:
+                raise ValueError(f"No required field: {f}")
+
             if f_type is datetime:
                 if type(v) is int:
                     data[f] = datetime.fromtimestamp(v)

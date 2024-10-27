@@ -27,6 +27,9 @@ class UserEnumerateRecord(NamedTuple):
     ev_type: EventType
     ev_source: str
     ids: list[int]
+    chunk_session: str | None = None
+    chunk_index: int | None = None
+    total_chunks: int | None = None
 
 
 class UserEOSRecord(NamedTuple):

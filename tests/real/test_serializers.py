@@ -65,7 +65,8 @@ def test_namedtuple_to_json_serializer_user_enumerate_record(
 
     assert value == (
         b'{"_time": "2024-01-01T00:00:00+00:00", "_type": "enumerate",'
-        b' "_source": "test", "ids": [1, 2, 3]}'
+        b' "_source": "test", "ids": [1, 2, 3],'
+        b' "chunk_session": null, "chunk_index": null, "total_chunks": null}'
     )
 
 

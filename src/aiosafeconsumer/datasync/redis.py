@@ -1,14 +1,15 @@
 import logging
-from collections.abc import Callable
+import pickle
+from collections.abc import AsyncGenerator, Callable, Sequence
 from dataclasses import dataclass
 from datetime import timedelta
-from typing import Generic, TypeAlias, no_type_check
+from typing import Generic, TypeAlias, cast, no_type_check
 
 from redis.asyncio import Redis
 
 from ..types import DataType
 from .base import DataWriter, DataWriterSettings
-from .types import EnumerateIDsRecord, EventType, Version
+from .types import EnumerateIDsChunk, EnumerateIDsRecord, EventType, ObjectID, Version
 
 log = logging.getLogger(__name__)
 
@@ -40,6 +41,14 @@ class RedisWriter(Generic[DataType], DataWriter[DataType]):
     def _versions_key(self) -> bytes:
         return self.settings.versions_key.encode()
 
+    def _enum_chunk_key(self, chunk: EnumerateIDsChunk) -> bytes:
+        key = f"{self.settings.versions_key}_chunk:{chunk.session}:{chunk.chunk_index}"
+        return key.encode()
+
+    def _enum_chunk_match_pattern(self, session: str) -> bytes:
+        key = f"{self.settings.versions_key}_chunk:{session}:*"
+        return key.encode()
+
     @no_type_check
     def _compare_versions(self, a: Version, b: Version) -> int:
         assert type(a) is type(b)
@@ -57,6 +66,25 @@ class RedisWriter(Generic[DataType], DataWriter[DataType]):
             for raw_id, raw_ver in raw_versions.items()
         }
         return versions
+
+    async def _save_enum_chunk(
+        self, redis: Redis, chunk: EnumerateIDsChunk, ids: Sequence[ObjectID]
+    ) -> None:
+        key = self._enum_chunk_key(chunk)
+        ids_set = set(str(id_) for id_ in ids)
+        value = pickle.dumps(ids_set)
+        await redis.set(key, value, ex=self.settings.versions_expire)
+
+    async def _iter_enum_chunks(
+        self, redis: Redis, session: str
+    ) -> AsyncGenerator[tuple[int, set[StrID]]]:
+        match = self._enum_chunk_match_pattern(session)
+        async for key in redis.scan_iter(match):
+            chunk_index = int(key.decode().rsplit(":")[-1])
+            value = await redis.get(key)
+            if value:
+                ids = cast(set[StrID], pickle.loads(value))
+                yield (chunk_index, ids)
 
     async def process(self, batch: list[DataType]) -> None:
         settings = self.settings
@@ -102,36 +130,60 @@ class RedisWriter(Generic[DataType], DataWriter[DataType]):
             ver_value = settings.version_serializer(upsert_versions[obj_id])
             update_versions[ver_key] = ver_value
 
-        if enum_records:
-            # TODO: implement sessions with chunks of IDs.
-            # Now just use last non chunked record.
-            use_enum_rec: EnumerateIDsRecord | None = None
-            use_enum_rec_ver: Version | None = None
-            for rec_ver in reversed(sorted(enum_records.keys())):
-                for rec in enum_records[rec_ver]:
-                    if rec.chunk is None:
-                        use_enum_rec = rec
-                        use_enum_rec_ver = rec_ver
-                        break
-                if use_enum_rec is not None:
-                    break
+        enum_to_process: list[tuple[Version, set[StrID]]] = []
 
-            if use_enum_rec is not None:
-                cur_ids: set[StrID] = set(
-                    obj_id
-                    for obj_id, rec_ver in versions.items()
-                    if self._compare_versions(rec_ver, use_enum_rec_ver) < 0
-                ) | set(obj_id for obj_id in upsert_versions.keys())
-                enum_ids: set[StrID] = set(str(id_) for id_ in use_enum_rec.ids)
-                ids_to_delete: set[StrID] = cur_ids - enum_ids
-                log.debug(
-                    f"Accept enumerate message with {len(enum_ids)} object IDs,"
-                    f" {len(ids_to_delete)} records will be deleted"
-                )
-                del_records.extend([self._obj_key(obj_id) for obj_id in ids_to_delete])
-                del_versions.extend(
-                    [self._obj_version_key(obj_id) for obj_id in ids_to_delete]
-                )
+        for rec_ver, rec_list in enum_records.items():
+            for rec in rec_list:
+                if rec.chunk is None:
+                    enum_ids: set[StrID] = set(str(id_) for id_ in rec.ids)
+                    enum_to_process.append((rec_ver, enum_ids))
+                    continue
+
+                chunks_in_db: set[int] = set()
+                ids_in_db: set[StrID] = set()
+
+                async for chunk_index, ids in self._iter_enum_chunks(
+                    redis, rec.chunk.session
+                ):
+                    chunks_in_db.add(chunk_index)
+                    ids_in_db |= ids
+
+                complete_chunks = set(range(rec.chunk.total_chunks))
+                if chunks_in_db | {rec.chunk.chunk_index} == complete_chunks:
+                    enum_ids = ids_in_db | set(str(id_) for id_ in rec.ids)
+                    enum_to_process.append((rec_ver, enum_ids))
+                    for chunk_index in complete_chunks:
+                        del_records.append(
+                            self._enum_chunk_key(
+                                EnumerateIDsChunk(
+                                    session=rec.chunk.session,
+                                    chunk_index=chunk_index,
+                                    total_chunks=rec.chunk.total_chunks,
+                                )
+                            )
+                        )
+                else:
+                    await self._save_enum_chunk(redis, rec.chunk, rec.ids)
+
+        for enum_ver, enum_ids in enum_to_process:
+            cur_ids: set[StrID] = set(
+                obj_id
+                for obj_id, rec_ver in versions.items()
+                if self._compare_versions(rec_ver, enum_ver) < 0
+            ) | set(
+                obj_id
+                for obj_id, rec_ver in upsert_versions.items()
+                if self._compare_versions(rec_ver, enum_ver) < 0
+            )
+            ids_to_delete: set[StrID] = cur_ids - enum_ids
+            log.debug(
+                f"Accept enumerate message with {len(enum_ids)} object IDs,"
+                f" {len(ids_to_delete)} records will be deleted"
+            )
+            del_records.extend([self._obj_key(obj_id) for obj_id in ids_to_delete])
+            del_versions.extend(
+                [self._obj_version_key(obj_id) for obj_id in ids_to_delete]
+            )
 
         async with redis.pipeline(transaction=True) as pipe:
             if update_records:
