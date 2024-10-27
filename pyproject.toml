@@ -4,7 +4,7 @@ dynamic = ["version"]
 authors = [
   {name = "Kostiantyn Korikov", email = "lostclus@gmail.com"},
 ]
-description = "Safe consume and process data."
+description = "Safely consume and process data."
 readme = "README.rst"
 keywords = ["asyncio", "consumer", "microservices"]
 classifiers = [
