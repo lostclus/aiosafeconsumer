@@ -1,6 +1,5 @@
 import pickle
 from dataclasses import dataclass
-from datetime import datetime
 from typing import Any, cast
 
 from aiosafeconsumer.datasync import EnumerateIDsRecord, EventType, ObjectID, Version
@@ -10,7 +9,7 @@ from .types import User, UserDeleteRecord, UserEnumerateRecord, UserRecord
 
 
 @dataclass
-class UsersWriterSettings(RedisWriterSettings[User]):
+class UsersRedisWriterSettings(RedisWriterSettings[User]):
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(
             version_getter=self._version_getter,
@@ -25,7 +24,7 @@ class UsersWriterSettings(RedisWriterSettings[User]):
 
     @staticmethod
     def _version_getter(item: User) -> Version:
-        return int(datetime.fromisoformat(item.ev_time).timestamp())
+        return int(item.ev_time.timestamp())
 
     @staticmethod
     def _record_serializer(item: User) -> bytes:
@@ -54,5 +53,5 @@ class UsersWriterSettings(RedisWriterSettings[User]):
         return int(val.decode())
 
 
-class UsersWriter(RedisWriter[User]):
-    pass
+class UsersRedisWriter(RedisWriter[User]):
+    settings: UsersRedisWriterSettings

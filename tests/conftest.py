@@ -20,7 +20,7 @@ from aiosafeconsumer import (
 )
 
 if not os.getenv("KAFKA_BOOTSTRAP_SERVERS") and not os.getenv("REDIS_URL"):
-    collect_ignore = ["real_kafka_redis"]
+    collect_ignore = ["real/kafka_redis"]
 
 
 _LOGGING = {

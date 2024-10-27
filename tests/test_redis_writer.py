@@ -31,7 +31,12 @@ class ItemEnumerateRecord(NamedTuple):
     ids: list[int]
 
 
-Item = ItemRecord | ItemDeleteRecord | ItemEnumerateRecord
+class ItemEOSRecord(NamedTuple):
+    ev_type: EventType
+    version: int
+
+
+Item = ItemRecord | ItemDeleteRecord | ItemEnumerateRecord | ItemEOSRecord
 
 
 @dataclass
@@ -172,18 +177,18 @@ async def test_redis_writer_initial_empty(
 async def test_redis_writer_upsert(redis_mock: Redis, settings: Settings) -> None:
     redis_mock._test_versions.update(  # type: ignore
         {
-            b"1": b"0",
-            b"2": b"2",
+            b"2": b"3",
             b"3": b"1",
             b"4": b"0",
+            b"5": b"2",
         },
     )
     redis_mock._test_db.update(  # type:ignore
         {
-            b"item:1": b"",
             b"item:2": b"",
             b"item:3": b"",
             b"item:4": b"",
+            b"item:5": b"",
         },
     )
 
@@ -191,7 +196,8 @@ async def test_redis_writer_upsert(redis_mock: Redis, settings: Settings) -> Non
         ItemRecord(ev_type=EventType.CREATE, version=1, id=1, data="1v1"),
         ItemRecord(ev_type=EventType.UPDATE, version=2, id=2, data="2v2"),
         ItemRecord(ev_type=EventType.REFRESH, version=2, id=3, data="3v2"),
-        ItemRecord(ev_type=EventType.DELETE, version=1, id=4, data=""),
+        ItemDeleteRecord(ev_type=EventType.DELETE, version=1, id=4),
+        ItemDeleteRecord(ev_type=EventType.DELETE, version=1, id=5),
     ]
 
     writer = Writer(settings)
@@ -199,13 +205,15 @@ async def test_redis_writer_upsert(redis_mock: Redis, settings: Settings) -> Non
 
     assert redis_mock._test_versions == {  # type: ignore
         b"1": b"1",
-        b"2": b"2",
+        b"2": b"3",
         b"3": b"2",
+        b"5": b"2",
     }
     assert redis_mock._test_db == {  # type: ignore
         b"item:1": b'{"ev_type": "create", "version": 1, "id": 1, "data": "1v1"}',
         b"item:2": b"",
         b"item:3": b'{"ev_type": "refresh", "version": 2, "id": 3, "data": "3v2"}',
+        b"item:5": b"",
     }
     assert redis_mock._test_expire_db == {  # type: ignore
         b"item:1": timedelta(hours=30),
@@ -242,10 +250,12 @@ async def test_redis_writer_enumerate(redis_mock: Redis, settings: Settings) -> 
 
     assert redis_mock._test_versions == {  # type: ignore
         b"1": b"0",
+        b"2": b"2",
         b"3": b"1",
     }
     assert redis_mock._test_db == {  # type: ignore
         b"item:1": b"",
+        b"item:2": b"",
         b"item:3": b"",
     }
     assert redis_mock._test_expire_db == {  # type: ignore
