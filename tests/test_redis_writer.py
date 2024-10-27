@@ -419,3 +419,44 @@ async def test_redis_writer_enumerate_with_chunks(
     assert redis_mock._test_expire == {  # type: ignore
         b"items": timedelta(hours=24),
     }
+
+
+@pytest.mark.asyncio
+async def test_redis_writer_eos(redis_mock: Redis, settings: Settings) -> None:
+    settings.process_eos = True
+
+    redis_mock._test_versions.update(  # type: ignore
+        {
+            b"1": b"0",
+            b"2": b"2",
+            b"3": b"1",
+            b"4": b"0",
+        },
+    )
+    redis_mock._test_objects.update(  # type:ignore
+        {
+            b"item:1": b"",
+            b"item:2": b"",
+            b"item:3": b"",
+            b"item:4": b"",
+        },
+    )
+
+    items: list[Item] = [
+        ItemEOSRecord(ev_type=EventType.EOS, version=1),
+    ]
+
+    writer = Writer(settings)
+    await writer.process(items)
+
+    assert redis_mock._test_versions == {  # type: ignore
+        b"2": b"2",
+        b"3": b"1",
+    }
+    assert redis_mock._test_objects == {  # type: ignore
+        b"item:2": b"",
+        b"item:3": b"",
+    }
+    assert redis_mock._test_expire == {  # type: ignore
+        b"items": timedelta(hours=24),
+    }

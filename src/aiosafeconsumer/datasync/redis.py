@@ -25,6 +25,8 @@ class RedisWriterSettings(Generic[DataType], DataWriterSettings[DataType]):
     record_serializer: Callable[[DataType], bytes]
     key_prefix: str
     versions_key: str
+    enum_chunks_key_prefix: str | None = None
+    process_eos: bool = False
     versions_expire: timedelta = timedelta(hours=24)
     record_expire: timedelta = timedelta(hours=30)
 
@@ -41,12 +43,20 @@ class RedisWriter(Generic[DataType], DataWriter[DataType]):
     def _versions_key(self) -> bytes:
         return self.settings.versions_key.encode()
 
+    def _enum_chunk_key_prefix(self) -> str:
+        return (
+            self.settings.enum_chunks_key_prefix
+            or f"{self.settings.versions_key}_chunk:"
+        )
+
     def _enum_chunk_key(self, chunk: EnumerateIDsChunk) -> bytes:
-        key = f"{self.settings.versions_key}_chunk:{chunk.session}:{chunk.chunk_index}"
+        prefix = self._enum_chunk_key_prefix()
+        key = f"{prefix}{chunk.session}:{chunk.chunk_index}"
         return key.encode()
 
     def _enum_chunk_match_pattern(self, session: str) -> bytes:
-        key = f"{self.settings.versions_key}_chunk:{session}:*"
+        prefix = self._enum_chunk_key_prefix()
+        key = f"{prefix}{session}:*"
         return key.encode()
 
     @no_type_check
@@ -91,6 +101,7 @@ class RedisWriter(Generic[DataType], DataWriter[DataType]):
         redis = settings.redis()
 
         enum_records: dict[Version, list[EnumerateIDsRecord]] = {}
+        eos_versions: set[Version] = set()
         upsert_records: dict[StrID, DataType] = {}
         upsert_versions: dict[StrID, Version] = {}
 
@@ -105,6 +116,9 @@ class RedisWriter(Generic[DataType], DataWriter[DataType]):
                 enum_rec = settings.enum_getter(record)
                 enum_records.setdefault(rec_ver, [])
                 enum_records[rec_ver].append(enum_rec)
+            elif event_type == EventType.EOS:
+                if self.settings.process_eos:
+                    eos_versions.add(rec_ver)
             else:
                 obj_id = str(settings.id_getter(record))
                 cur_ver = upsert_versions.get(obj_id, versions.get(obj_id))
@@ -166,18 +180,41 @@ class RedisWriter(Generic[DataType], DataWriter[DataType]):
                     await self._save_enum_chunk(redis, rec.chunk, rec.ids)
 
         for enum_ver, enum_ids in enum_to_process:
-            cur_ids: set[StrID] = set(
+            outdated_ids = set(
                 obj_id
                 for obj_id, rec_ver in versions.items()
                 if self._compare_versions(rec_ver, enum_ver) < 0
-            ) | set(
+            )
+            fresh_ids = set(
                 obj_id
                 for obj_id, rec_ver in upsert_versions.items()
-                if self._compare_versions(rec_ver, enum_ver) < 0
+                if self._compare_versions(rec_ver, enum_ver) >= 0
             )
-            ids_to_delete: set[StrID] = cur_ids - enum_ids
+            ids_to_delete = outdated_ids - enum_ids - fresh_ids
             log.debug(
-                f"Accept enumerate message with {len(enum_ids)} object IDs,"
+                f"Accept enumerate message of version {enum_ver}"
+                f" with {len(enum_ids)} object IDs,"
+                f" {len(ids_to_delete)} records will be deleted"
+            )
+            del_records.extend([self._obj_key(obj_id) for obj_id in ids_to_delete])
+            del_versions.extend(
+                [self._obj_version_key(obj_id) for obj_id in ids_to_delete]
+            )
+
+        for eos_ver in eos_versions:
+            outdated_ids = set(
+                obj_id
+                for obj_id, rec_ver in versions.items()
+                if self._compare_versions(rec_ver, eos_ver) < 0
+            )
+            fresh_ids = set(
+                obj_id
+                for obj_id, rec_ver in upsert_versions.items()
+                if self._compare_versions(rec_ver, eos_ver) >= 0
+            )
+            ids_to_delete = outdated_ids - fresh_ids
+            log.debug(
+                f"Accept end of stream message of version {eos_ver}, "
                 f" {len(ids_to_delete)} records will be deleted"
             )
             del_records.extend([self._obj_key(obj_id) for obj_id in ids_to_delete])
