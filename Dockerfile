@@ -19,6 +19,8 @@ RUN  \
         python3.11-distutils \
 	python3.12 \
         python3.12-distutils \
+	python3.13 \
+	python3.13-dev \
     && apt clean \
     && rm -rf /var/lib/apt/lists/*
 
