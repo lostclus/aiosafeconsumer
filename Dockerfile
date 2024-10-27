@@ -41,4 +41,4 @@ RUN pip3 install --upgrade pip \
 
 WORKDIR /test
 USER testuser
-CMD tox run -- --with-custom-logging
+CMD ["tox", "run", "--", "--with-custom-logging"]

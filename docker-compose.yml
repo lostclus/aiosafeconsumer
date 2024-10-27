@@ -3,7 +3,7 @@ services:
     image: redis:7-alpine
 
   kafka:
-    image: docker.io/bitnami/kafka:3.7
+    image: docker.io/bitnami/kafka:latest
     ports:
       - "9092:9092"
     environment:
@@ -23,7 +23,7 @@ services:
       timeout: 10s
       retries: 50
 
-  test:
+  test: &test-config
     build:
       context: .
       dockerfile: Dockerfile
@@ -39,17 +39,5 @@ services:
       REDIS_URL: "redis://redis:6379/0"
 
   test-coverage:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    depends_on:
-      redis:
-        condition: service_started
-      kafka:
-        condition: service_healthy
-    volumes:
-      - ./:/test
-    environment:
-      KAFKA_BOOTSTRAP_SERVERS: "kafka:9092"
-      REDIS_URL: "redis://redis:6379/0"
+    <<: *test-config
     command: tox run -e coverage -- --with-custom-logging
