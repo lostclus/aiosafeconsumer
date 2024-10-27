@@ -1,4 +1,4 @@
-from abc import ABC
+from abc import ABC, abstractmethod
 from collections.abc import AsyncGenerator
 from dataclasses import dataclass
 from typing import Generic
@@ -22,6 +22,7 @@ class DataSource(Generic[DataType], ABC):
     def __str__(self) -> str:
         return self.__class__.__name__
 
+    @abstractmethod
     async def read(self) -> AsyncGenerator[list[DataType], None]:  # pragma: no cover
         """
         Returns async generator to read batches of items.

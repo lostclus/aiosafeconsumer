@@ -88,7 +88,13 @@ def pytest_configure(config: pytest.Config) -> None:
         logging.config.dictConfig(_LOGGING)
 
 
+class StrSourceSettings(DataSourceSettings):
+    stop_on: int | None = None
+
+
 class StrSource(DataSource[str]):
+    settings: StrSourceSettings
+
     BATCHES = [
         ["one", "two", "three", "fore", "five"],
         ["six", "seven", "eight", "nine", "ten"],
@@ -98,9 +104,13 @@ class StrSource(DataSource[str]):
 
     async def read(self) -> AsyncGenerator[list[str], None]:
         self.is_resource_allocated = True
+        count = 0
         try:
             for batch in itertools.cycle(self.BATCHES):
                 yield batch
+                count += 1
+                if self.settings.stop_on is not None and count == self.settings.stop_on:
+                    break
         finally:
             self.is_resource_allocated = False
 
@@ -167,10 +177,20 @@ class StrConsumerWithTansformerSettings(ConsumerWorkerSettings[str]):
 
 
 @pytest.fixture
-def consumer_settings() -> StrConsumerSettings:
+def source_settings() -> StrSourceSettings:
+    return StrSourceSettings()
+
+
+@pytest.fixture
+def source(source_settings: StrSourceSettings) -> StrSource:
+    return StrSource(source_settings)
+
+
+@pytest.fixture
+def consumer_settings(source_settings: StrSourceSettings) -> StrConsumerSettings:
     return StrConsumerSettings(
         source_class=StrSource,
-        source_settings=DataSourceSettings(),
+        source_settings=source_settings,
         processor_class=StrProcessor,
         processor_settings=DataProcessorSettings(),
     )
@@ -186,19 +206,15 @@ def transformer_settings() -> StrToIntTransformerSettings:
 
 @pytest.fixture
 def consumer_with_transformer_settings(
+    source_settings: StrSourceSettings,
     transformer_settings: StrToIntTransformerSettings,
 ) -> StrConsumerWithTansformerSettings:
     return StrConsumerWithTansformerSettings(
         source_class=StrSource,
-        source_settings=DataSourceSettings(),
+        source_settings=source_settings,
         processor_class=StrToIntTransformer,
         processor_settings=transformer_settings,
     )
-
-
-@pytest.fixture
-def source() -> StrSource:
-    return StrSource()
 
 
 @pytest.fixture

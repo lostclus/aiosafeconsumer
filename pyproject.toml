@@ -53,6 +53,7 @@ version = {attr = "aiosafeconsumer.__version__"}
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+asyncio_default_fixture_loop_scope = "function"
 
 [tool.coverage.run]
 omit = ["kafka_stubs.py"]

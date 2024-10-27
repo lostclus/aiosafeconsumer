@@ -1,5 +1,5 @@
 import logging
-from abc import ABC
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Generic
 
@@ -20,8 +20,9 @@ class DataProcessor(Generic[DataType], ABC):
     def __str__(self) -> str:
         return self.__class__.__name__
 
-    async def process(self, batch: list[DataType]) -> None:
-        raise NotImplementedError
+    @abstractmethod
+    async def process(self, batch: list[DataType]) -> None:  # pragma: no cover
+        pass
 
 
 @dataclass
@@ -43,5 +44,8 @@ class DataTransformer(Generic[DataType, TargetDataType], DataProcessor[DataType]
         )
         await self.target_processor.process(new_batch)
 
-    async def transform(self, batch: list[DataType]) -> list[TargetDataType]:
-        raise NotImplementedError
+    @abstractmethod
+    async def transform(
+        self, batch: list[DataType]
+    ) -> list[TargetDataType]:  # pragma: no cover
+        pass

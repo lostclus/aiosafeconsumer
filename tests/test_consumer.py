@@ -36,6 +36,29 @@ async def test_consumer(consumer: ConsumerWorker) -> None:
 
 
 @pytest.mark.asyncio
+async def test_consumer_source_stop(consumer: ConsumerWorker) -> None:
+    source = cast(StrSource, consumer.source)
+    source.settings.stop_on = 2
+    processor = cast(StrProcessor, consumer.processor)
+
+    assert processor.storage == []
+
+    items_count = sum([len(batch) for batch in source.BATCHES])
+
+    task = asyncio.create_task(consumer.run())
+
+    while not task.done() and len(processor.storage) < items_count * 10:
+        await asyncio.sleep(0)
+
+    assert task.done()
+
+    assert processor.storage == [
+        *source.BATCHES[0],
+        *source.BATCHES[1],
+    ]
+
+
+@pytest.mark.asyncio
 async def test_consumer_with_transformer(
     consumer_with_transformer: ConsumerWorker,
 ) -> None:

@@ -1,5 +1,5 @@
 import uuid
-from abc import ABC
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Any
 
@@ -34,5 +34,6 @@ class Worker(ABC):
         if self.worker_id:
             worker_id_context.set(self.worker_id)
 
-    async def run(self, burst: bool = False) -> None:
-        raise NotImplementedError
+    @abstractmethod
+    async def run(self, burst: bool = False) -> None:  # pragma: no cover
+        pass
