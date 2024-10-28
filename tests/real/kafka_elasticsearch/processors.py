@@ -20,13 +20,12 @@ class UsersElasticsearchWriterSettings(ElasticsearchWriterSettings):
             id_getter=self._id_getter,
             enum_getter=self._enum_getter,
             record_serializer=self._record_serializer,
-            record_deserializer=self._record_deserializer,
             **kwargs,
         )
 
     @staticmethod
     def _version_getter(item: User) -> Version:
-        return int(item.ev_time.timestamp())
+        return item.ev_time
 
     @staticmethod
     def _event_type_getter(item: User) -> EventType:
@@ -45,10 +44,6 @@ class UsersElasticsearchWriterSettings(ElasticsearchWriterSettings):
     @staticmethod
     def _record_serializer(item: UserRecord) -> Document:
         return item._asdict()
-
-    @staticmethod
-    def _record_deserializer(doc: Document) -> UserRecord:
-        return UserRecord(**doc)
 
 
 class UsersElasticsearchWriter(ElasticsearchWriter[User]):

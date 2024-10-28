@@ -31,7 +31,6 @@ class ElasticsearchWriterSettings(Generic[DataType], DataWriterSettings[DataType
     index: str
     version_field: str
     record_serializer: Callable[[DataType], Document]
-    record_deserializer: Callable[[Document], DataType]
     process_eos: bool = False
     wait_for_completion: bool = False
 
@@ -67,12 +66,18 @@ class ElasticsearchWriter(Generic[DataType], DataWriter[DataType]):
     def _action(self, event_type: EventType, record: DataType) -> Action:
         _index = self._es_index(record)
         _id = self._es_id(record)
-        _source = self._es_document(record)
         _version = self._es_version(record)
         _routing = self._es_routing(record)
 
+        if event_type == EventType.DELETE:
+            _op_type = "delete"
+            _source = None
+        else:
+            _op_type = "index"
+            _source = self._es_document(record)
+
         action = {
-            "_op_type": "index" if event_type != EventType.DELETE else "delete",
+            "_op_type": _op_type,
             "_index": _index,
             "_id": _id,
             "_source": _source,

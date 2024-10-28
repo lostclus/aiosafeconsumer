@@ -10,7 +10,7 @@ from aiosafeconsumer import WorkerDef, WorkerPoolSettings
 
 from ..deserializers import json_to_namedtuple_deserializer
 from ..sources import UsersKafkaSource, UsersKafkaSourceSettings
-from ..types import UserDeleteRecord, UserEnumerateRecord, UserRecord
+from ..types import UserDeleteRecord, UserEnumerateRecord, UserEOSRecord, UserRecord
 from ..workers import UsersWorker, UsersWorkerSettings
 from .processors import UsersRedisWriter, UsersRedisWriterSettings
 
@@ -55,6 +55,7 @@ def worker_pool_settings(
                             UserRecord,
                             UserDeleteRecord,
                             UserEnumerateRecord,
+                            UserEOSRecord,
                         ),
                         getmany_timeout=timedelta(seconds=0.1),
                         kwargs={
