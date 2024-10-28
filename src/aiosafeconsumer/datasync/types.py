@@ -12,7 +12,7 @@ class EventType(str, Enum):
     EOS = "eos"  # end of stream
 
 
-Version: TypeAlias = int | str | datetime
+Version: TypeAlias = int | datetime
 ObjectID: TypeAlias = int | str
 
 

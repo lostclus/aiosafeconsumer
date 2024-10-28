@@ -31,8 +31,10 @@ Repository = "http://github.com/lostclus/aiosafeconsumer"
 [project.optional-dependencies]
 kafka = ["aiokafka"]
 redis = ["redis[hiredis]"]
+elasticsearch = ["elasticsearch[async]"]
 tests = [
     "aiokafka",
+    "elasticsearch[async]",
     "pytest",
     "pytest-asyncio",
     "pytest-cov",

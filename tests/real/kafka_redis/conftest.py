@@ -1,15 +1,39 @@
+import os
+from collections.abc import AsyncGenerator
 from datetime import timedelta
 
 import pytest
-from redis.asyncio import Redis
+import pytest_asyncio
+from redis.asyncio import ConnectionPool, Redis
 
 from aiosafeconsumer import WorkerDef, WorkerPoolSettings
 
 from ..deserializers import json_to_namedtuple_deserializer
-from ..processors import UsersRedisWriter, UsersRedisWriterSettings
 from ..sources import UsersKafkaSource, UsersKafkaSourceSettings
 from ..types import UserDeleteRecord, UserEnumerateRecord, UserRecord
 from ..workers import UsersWorker, UsersWorkerSettings
+from .processors import UsersRedisWriter, UsersRedisWriterSettings
+
+
+@pytest.fixture
+def redis_url() -> str:
+    return os.getenv("REDIS_URL", "")
+
+
+@pytest_asyncio.fixture
+async def redis_pool(redis_url: str) -> AsyncGenerator[ConnectionPool]:
+    pool: ConnectionPool = ConnectionPool.from_url(redis_url)
+    try:
+        yield pool
+    finally:
+        redis = Redis(connection_pool=pool)
+        await redis.flushdb()
+        await pool.disconnect()
+
+
+@pytest.fixture
+def redis(redis_pool: ConnectionPool) -> Redis:
+    return Redis(connection_pool=redis_pool)
 
 
 @pytest.fixture

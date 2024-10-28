@@ -1,34 +1,32 @@
-import pickle
 from dataclasses import dataclass
 from typing import Any, cast
 
 from aiosafeconsumer.datasync import EnumerateIDsRecord, EventType, ObjectID, Version
-from aiosafeconsumer.datasync.redis import RedisWriter, RedisWriterSettings
+from aiosafeconsumer.datasync.elasticsearch import (
+    Document,
+    ElasticsearchWriter,
+    ElasticsearchWriterSettings,
+)
 
-from .types import User, UserDeleteRecord, UserEnumerateRecord, UserRecord
+from ..types import User, UserDeleteRecord, UserEnumerateRecord, UserRecord
 
 
 @dataclass
-class UsersRedisWriterSettings(RedisWriterSettings[User]):
+class UsersElasticsearchWriterSettings(ElasticsearchWriterSettings):
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(
             version_getter=self._version_getter,
             event_type_getter=self._event_type_getter,
             id_getter=self._id_getter,
             enum_getter=self._enum_getter,
-            version_serializer=self._version_serializer,
-            version_deserializer=self._version_deserializer,
             record_serializer=self._record_serializer,
+            record_deserializer=self._record_deserializer,
             **kwargs,
         )
 
     @staticmethod
     def _version_getter(item: User) -> Version:
         return int(item.ev_time.timestamp())
-
-    @staticmethod
-    def _record_serializer(item: User) -> bytes:
-        return pickle.dumps(item)
 
     @staticmethod
     def _event_type_getter(item: User) -> EventType:
@@ -45,13 +43,13 @@ class UsersRedisWriterSettings(RedisWriterSettings[User]):
         return EnumerateIDsRecord(ids=cast(list[ObjectID], item.ids))
 
     @staticmethod
-    def _version_serializer(ver: Version) -> bytes:
-        return str(ver).encode()
+    def _record_serializer(item: UserRecord) -> Document:
+        return item._asdict()
 
     @staticmethod
-    def _version_deserializer(val: bytes) -> Version:
-        return int(val.decode())
+    def _record_deserializer(doc: Document) -> UserRecord:
+        return UserRecord(**doc)
 
 
-class UsersRedisWriter(RedisWriter[User]):
-    settings: UsersRedisWriterSettings
+class UsersElasticsearchWriter(ElasticsearchWriter[User]):
+    settings: ElasticsearchWriterSettings
