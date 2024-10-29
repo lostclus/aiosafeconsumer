@@ -11,7 +11,7 @@ from elasticsearch.helpers import BulkIndexError, async_bulk
 
 from ..types import DataType
 from .base import DataWriter, DataWriterSettings
-from .types import EventType
+from .types import EnumerateIDsRecord, EventType, Version
 
 log = logging.getLogger(__name__)
 
@@ -87,12 +87,12 @@ class ElasticsearchWriter(Generic[DataType], DataWriter[DataType]):
         }
         return action
 
-    def _enum_query(self, record: DataType) -> DeleteByQuery:
-        index = self._es_index(record)
-        rec_ver = self.settings.version_getter(record)
-        enum_rec = self.settings.enum_getter(record)
-
-        assert enum_rec.chunk is None, "Chunks is not implemented yet"
+    def _enum_query(
+        self, index: str, rec_ver: Version, enum_rec: EnumerateIDsRecord
+    ) -> DeleteByQuery:
+        assert (
+            enum_rec.chunk is None
+        ), "Enumerate messages with chunks is not implemented"
 
         query = {
             "bool": {
@@ -116,9 +116,7 @@ class ElasticsearchWriter(Generic[DataType], DataWriter[DataType]):
         }
         return DeleteByQuery(index=index, query=query)
 
-    def _eos_query(self, record: DataType) -> DeleteByQuery:
-        index = self._es_index(record)
-        rec_ver = self.settings.version_getter(record)
+    def _eos_query(self, index: str, rec_ver: Version) -> DeleteByQuery:
         query = {
             "bool": {
                 "filter": [
@@ -190,13 +188,25 @@ class ElasticsearchWriter(Generic[DataType], DataWriter[DataType]):
         async def _generator() -> AsyncGenerator[Action]:
             for record in batch:
                 event_type = self.settings.event_type_getter(record)
+                rec_ver = self.settings.version_getter(record)
                 query: DeleteByQuery | None = None
 
                 if event_type == EventType.ENUMERATE:
-                    query = self._enum_query(record)
+                    enum_rec = self.settings.enum_getter(record)
+                    if enum_rec.chunk:
+                        log.warning("Enumerate messages with chunks is not implemented")
+                    else:
+                        log.debug(
+                            f"Accept enumerate message of version {rec_ver}"
+                            f" with {len(enum_rec.ids)} object IDs"
+                        )
+                        index = self._es_index(record)
+                        query = self._enum_query(index, rec_ver, enum_rec)
                 elif event_type == EventType.EOS:
                     if self.settings.process_eos:
-                        query = self._eos_query(record)
+                        log.debug(f"Accept end of stream message of version {rec_ver}")
+                        index = self._es_index(record)
+                        query = self._eos_query(index, rec_ver)
                 else:
                     action = self._action(event_type, record)
                     indices.add(action["_index"])
