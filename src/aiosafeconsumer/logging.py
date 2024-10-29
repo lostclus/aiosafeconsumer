@@ -19,10 +19,7 @@ class ContextInjectingFilter(Filter):
             if not hasattr(record, field):
                 value = var.get()
                 if value is not None:
-                    try:
-                        setattr(record, field, value)
-                    except LookupError:
-                        pass
+                    setattr(record, field, value)
         return True
 
 
@@ -41,13 +38,9 @@ class IsWorkerContextFilter(Filter):
         return result
 
 
-class ExtraFieldsJSONEncoder(json.JSONEncoder):
-    def default(self, o: Any) -> str:
-        return repr(o)
-
-
 class ExtraFieldsFormatter(Formatter):
     fields: Sequence[str]
+    json_encoder = json.JSONEncoder
 
     def __init__(self, *args: Any, **kwargs: Any):
         self.fields = cast(
@@ -64,7 +57,5 @@ class ExtraFieldsFormatter(Formatter):
         }
         text = super().format(record)
         if extra:
-            text += " " + json.dumps(
-                extra, cls=ExtraFieldsJSONEncoder, ensure_ascii=False
-            )
+            text += " " + json.dumps(extra, cls=self.json_encoder, ensure_ascii=False)
         return text
