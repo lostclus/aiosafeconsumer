@@ -18,6 +18,7 @@ Features:
 
 * Based on AsyncIO
 * Type annotated
+* Use logging with contextual information
 
 Abstractions:
 
@@ -25,9 +26,9 @@ Abstractions:
 * `DataProcessor` - accepts batch of records and precess it
 * `DataTransformer` - accepts batch of records and transform it and calls
   another processor to precess it. Extends `DataProcessor`
-* `Worker` - abstract worker
-* `ConsumerWorker` - connects `DataSource` and `DataProcessor`
-* `DataWriter` - base abstraction to perform data synchronization
+* `Worker` - abstract worker. Do a long running task
+* `ConsumerWorker` - connects `DataSource` and `DataProcessor`. Extends Worker
+* `DataWriter` - base abstraction to perform data synchronization. Extends DataProcessor
 
 Current implementations:
 
