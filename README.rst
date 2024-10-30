@@ -53,3 +53,9 @@ Links:
 
 * Producer library: https://github.com/lostclus/django-kafka-streamer
 * Example application: https://github.com/lostclus/WeatherApp
+
+TODO:
+
+* MongoDB writer
+* PostgreSQL writer
+* ClickHouse writer
