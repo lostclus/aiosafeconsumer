@@ -37,6 +37,19 @@ Current implementations:
 * `ElasticsearchWriter` - synchronize data in Elasticsearch
 * `WorkerPool` - controller to setup and run workers in parallel. Can handle worker failures and restarts workers when it fails or exits.
 
-Recommend producer library: https://github.com/lostclus/django-kafka-streamer
+Install::
 
-Example application: https://github.com/lostclus/WeatherApp
+    pip install aiosafeconsumer
+
+Install with Redis::
+
+    pip install aiosafeconsumer[redis]
+
+Install with Elasticsearch::
+
+    pip install aiosafeconsumer[elasticsearch]
+
+Links:
+
+* Producer library: https://github.com/lostclus/django-kafka-streamer
+* Example application: https://github.com/lostclus/WeatherApp
