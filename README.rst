@@ -41,6 +41,10 @@ Install::
 
     pip install aiosafeconsumer
 
+Install with Kafka::
+
+    pip install aiosafeconsumer[kafka]
+
 Install with Redis::
 
     pip install aiosafeconsumer[redis]
