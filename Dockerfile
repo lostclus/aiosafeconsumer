@@ -18,11 +18,15 @@ RUN  \
 	python3.11 \
         python3.11-distutils \
 	python3.12 \
-        python3.12-distutils \
 	python3.13 \
 	python3.13-dev \
+	tox \
     && apt clean \
     && rm -rf /var/lib/apt/lists/*
+
+RUN  \
+    for n in `cat /etc/passwd | awk -F: '$3 == "'${USER_ID}'" { print $1 }'`; do userdel -r $n; done \
+    && for n in `cat /etc/group | awk -F: '$3 == "'${USER_GROUP_ID}'" { print $1 }'`; do groupdel $n; done
 
 RUN groupadd \
 	--gid $USER_GROUP_ID \
@@ -35,9 +39,6 @@ RUN groupadd \
 	--uid $USER_ID \
 	--gid testuser \
 	testuser
-
-RUN pip3 install --upgrade pip \
-    && pip3 install tox
 
 WORKDIR /test
 USER testuser
