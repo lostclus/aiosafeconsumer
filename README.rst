@@ -53,6 +53,10 @@ Install with Elasticsearch::
 
     pip install aiosafeconsumer[elasticsearch]
 
+Install with MongoDB::
+
+    pip install aiosafeconsumer[mongo]
+
 Links:
 
 * Producer library: https://github.com/lostclus/django-kafka-streamer
@@ -60,6 +64,5 @@ Links:
 
 TODO:
 
-* MongoDB writer
 * PostgreSQL writer
 * ClickHouse writer
