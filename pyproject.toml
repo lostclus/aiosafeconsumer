@@ -32,6 +32,7 @@ Repository = "http://github.com/lostclus/aiosafeconsumer"
 kafka = ["aiokafka"]
 redis = ["redis[hiredis]"]
 elasticsearch = ["elasticsearch[async]"]
+mongo = ["pymongo"]
 tests = [
     "aiokafka",
     "elasticsearch[async]",
@@ -39,6 +40,8 @@ tests = [
     "pytest-asyncio",
     "pytest-cov",
     "redis[hiredis]",
+    "pymongo",
+    "camel-converter",
 ]
 
 [build-system]

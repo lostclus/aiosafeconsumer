@@ -13,6 +13,12 @@ services:
       timeout: 10s
       retries: 10
 
+  mongodb:
+    image: bitnami/mongodb:5.0
+    environment:
+      ALLOW_EMPTY_PASSWORD: "yes"
+      MONGODB_ENABLE_JOURNAL: "false"
+
   kafka:
     image: docker.io/bitnami/kafka:latest
     environment:
@@ -39,6 +45,8 @@ services:
     depends_on:
       elasticsearch:
         condition: service_healthy
+      mongodb:
+        condition: service_started
       redis:
         condition: service_started
       kafka:
@@ -48,6 +56,7 @@ services:
     environment:
       ELASTICSEARCH_URL: "http://elasticsearch:9200"
       KAFKA_BOOTSTRAP_SERVERS: "kafka:9092"
+      MONGODB_URI: "mongodb://mongodb:27017"
       REDIS_URL: "redis://redis:6379/0"
 
   test-coverage:
