@@ -170,7 +170,7 @@ def settings(elasticsearch_mock: AsyncElasticsearch) -> Settings:
 
 
 @pytest.mark.asyncio
-async def test_redis_writer_initial_empty(
+async def test_elasticsearch_writer_initial_empty(
     elasticsearch_mock: AsyncElasticsearch, settings: Settings
 ) -> None:
     items: list[Item] = [
@@ -196,7 +196,7 @@ async def test_redis_writer_initial_empty(
 
 
 @pytest.mark.asyncio
-async def test_redis_writer_upsert(
+async def test_elasticsearch_writer_upsert(
     elasticsearch_mock: AsyncElasticsearch, settings: Settings
 ) -> None:
     elasticsearch_mock._test_versions.update(  # type: ignore
@@ -242,7 +242,7 @@ async def test_redis_writer_upsert(
 
 
 @pytest.mark.asyncio
-async def test_redis_writer_enumerate(
+async def test_elasticsearch_writer_enumerate(
     elasticsearch_mock: AsyncElasticsearch, settings: Settings
 ) -> None:
     elasticsearch_mock._test_versions.update(  # type: ignore
@@ -282,7 +282,7 @@ async def test_redis_writer_enumerate(
 
 
 @pytest.mark.asyncio
-async def test_redis_writer_eos(
+async def test_elasticsearch_writer_eos(
     elasticsearch_mock: AsyncElasticsearch, settings: Settings
 ) -> None:
     settings.process_eos = True
