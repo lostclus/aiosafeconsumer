@@ -10,7 +10,7 @@ from .types import DataType
 from .worker import Worker, WorkerSettings
 from .workerpool import WorkerDef, WorkerPool, WorkerPoolSettings
 
-__version__ = "0.0.4"
+__version__ = "0.0.5"
 
 __all__ = [
     "ConsumerWorker",
