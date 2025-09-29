@@ -33,6 +33,7 @@ class DataTransformerSettings(Generic[DataType, TargetDataType], DataProcessorSe
 
 class DataTransformer(Generic[DataType, TargetDataType], DataProcessor[DataType], ABC):
     def __init__(self, settings: DataTransformerSettings) -> None:
+        super().__init__(settings=settings)
         self.target_processor = settings.target_processor_class(
             settings.target_processor_settings
         )

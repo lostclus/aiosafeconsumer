@@ -3,7 +3,7 @@ services:
     image: redis:7-alpine
 
   elasticsearch:
-    image: elasticsearch:8.15.3
+    image: elasticsearch:9.1.4
     environment:
       discovery.type: single-node
       xpack.security.enabled: "false"
@@ -14,26 +14,25 @@ services:
       retries: 10
 
   mongodb:
-    image: bitnami/mongodb:5.0
+    image: mongo:8
     environment:
       ALLOW_EMPTY_PASSWORD: "yes"
       MONGODB_ENABLE_JOURNAL: "false"
 
   kafka:
-    image: docker.io/bitnami/kafka:latest
+    image: apache/kafka:latest
     environment:
-      ALLOW_PLAINTEXT_LISTENER: "yes"
-      KAFKA_BROKER_ID: "1"
-      KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: "true"
-      KAFKA_CFG_NODE_ID: "1"
-      KAFKA_CFG_ADVERTISED_LISTENERS: "PLAINTEXT://kafka:9092"
-      KAFKA_CFG_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
-      KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: "1@kafka:9093"
-      KAFKA_CFG_LISTENERS: "CONTROLLER://kafka:9093,PLAINTEXT://:9092"
-      KAFKA_CFG_PROCESS_ROLES: "broker,controller"
-      KAFKA_ENABLE_KRAFT: "yes"
+      KAFKA_LISTENERS: CONTROLLER://kafka:9091,HOST://0.0.0.0:9092,DOCKER://0.0.0.0:9093
+      KAFKA_ADVERTISED_LISTENERS: HOST://kafka:9092,DOCKER://kafka:9093
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,DOCKER:PLAINTEXT,HOST:PLAINTEXT
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9091
+      KAFKA_INTER_BROKER_LISTENER_NAME: DOCKER
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
     healthcheck:
-      test: ["CMD-SHELL", "kafka-topics.sh --bootstrap-server kafka:9092 --list"]
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --list"]
       interval: 30s
       timeout: 10s
       retries: 50
