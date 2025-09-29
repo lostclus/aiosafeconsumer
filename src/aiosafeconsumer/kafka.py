@@ -136,8 +136,8 @@ class KafkaSource(Generic[DataType], DataSource[DataType]):
                 if not consumed_count:
                     continue
 
-                skipped_tps = set()
-                consumed_tps = set()
+                skipped_tps: set[TopicPartition] = set()
+                consumed_tps: set[TopicPartition] = set()
 
                 for tp, messages in consumed_data.items():
                     if tp in listener.revoked:

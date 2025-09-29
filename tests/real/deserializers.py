@@ -48,7 +48,7 @@ def json_to_namedtuple_deserializer(
 
         for f in class_._fields:
             f_type = class_.__annotations__[f]
-            if typing.get_origin(f_type) is types.UnionType:
+            if typing.get_origin(f_type) is types.UnionType:  # type: ignore
                 f_type_args = typing.get_args(f_type)
                 f_type = f_type_args[0]
 

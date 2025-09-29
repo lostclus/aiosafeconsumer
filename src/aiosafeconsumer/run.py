@@ -213,7 +213,7 @@ def _run_mp(
 
     try:
         while not terminate.is_set():
-            is_restart = restart_at and restart_at <= time.time()
+            is_restart = restart_at is not None and restart_at <= time.time()
             if is_restart:
                 for process_id, proc in enumerate(children):
                     log.info(f"Restarting process #{process_id + 1} by schedule")
@@ -230,7 +230,7 @@ def _run_mp(
                     new_proc.start()
                     children[process_id] = new_proc
 
-            if is_restart and restart_iter:
+            if restart_at is not None and is_restart and restart_iter:
                 while restart_at <= time.time():
                     restart_at = restart_iter.get_next()
                 restart_at_str = datetime.utcfromtimestamp(restart_at).isoformat()

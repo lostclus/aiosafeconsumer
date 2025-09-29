@@ -1,5 +1,13 @@
+from typing import Any
+
+
 class TopicPartition:
     pass
+
+
+class Message:
+    offset: int
+    value: Any
 
 
 class ConsumerRebalanceListener:
@@ -20,6 +28,16 @@ class AIOKafkaConsumer:
         pass
 
     async def stop(self) -> None:
+        pass
+
+    async def getmany(  # type: ignore
+        self,
+        timeout_ms: float,
+        max_records: int | None,
+    ) -> dict[TopicPartition, list[Message]]:
+        pass
+
+    async def commit(self, offsets: dict[TopicPartition, int]) -> None:
         pass
 
 
