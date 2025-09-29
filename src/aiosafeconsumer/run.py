@@ -179,7 +179,7 @@ def _run_mp(
     ) -> multiprocessing.Process:
         proc = multiprocessing.Process(
             target=_run_sp,
-            args=[args, process_id],
+            args=[pool_class, pool_settings, args, process_id],
             name=f"process-{process_id + 1}",
             daemon=True,
         )

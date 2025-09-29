@@ -351,3 +351,15 @@ def test_cli_run_group(
     assert counter == {
         "worker3": 1,
     }
+
+
+# TODO: Write a correct working test
+def _test_cli_run_processes(
+    counter: dict[str, int],
+    worker_pool_settings: WorkerPoolSettings,
+) -> None:
+    cli_run(
+        ["test", "--processes", "2"],
+        pool_class=WorkerPool,
+        pool_settings=worker_pool_settings,
+    )
