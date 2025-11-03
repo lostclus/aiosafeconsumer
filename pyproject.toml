@@ -33,6 +33,7 @@ kafka = ["aiokafka"]
 redis = ["redis[hiredis]"]
 elasticsearch = ["elasticsearch[async]"]
 mongo = ["pymongo"]
+postgres = ["asyncpg"]
 tests = [
     "aiokafka",
     "elasticsearch[async]",
@@ -41,6 +42,8 @@ tests = [
     "pytest-cov",
     "redis[hiredis]",
     "pymongo",
+    "asyncpg",
+    "asyncpg-stubs",
     "camel-converter",
 ]
 
