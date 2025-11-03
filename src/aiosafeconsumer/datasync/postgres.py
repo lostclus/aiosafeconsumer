@@ -43,11 +43,15 @@ class PostgresWriter(Generic[DataType], DataWriter[DataType]):
         return tuple(row[field] for field in self.settings.id_fields)
 
     def _id_fields_sql(self, table: str) -> str:
-        fields_sql = ",".join(f'"{table}"."{field}"' for field in self.settings.id_fields)
+        fields_sql = ",".join(
+            f'"{table}"."{field}"' for field in self.settings.id_fields
+        )
         return fields_sql
 
     def _id_row_sql(self, table: str) -> str:
-        fields_sql = ",".join(f'"{table}"."{field}"' for field in self.settings.id_fields)
+        fields_sql = ",".join(
+            f'"{table}"."{field}"' for field in self.settings.id_fields
+        )
         if len(self.settings.id_fields) == 1:
             return fields_sql
         return f"({fields_sql})"
@@ -143,7 +147,9 @@ class PostgresWriter(Generic[DataType], DataWriter[DataType]):
                     WITH locked AS (
                         SELECT {self._id_fields_sql(table)}
                         FROM "{table}"
-                        WHERE {self._id_row_sql(table)} = any($1::{settings.id_sql_type}[])
+                        WHERE
+                            {self._id_row_sql(table)}
+                            = any($1::{settings.id_sql_type}[])
                         FOR UPDATE SKIP LOCKED
                     ), deleted AS (
                         DELETE FROM {tmp_table}
