@@ -2,7 +2,8 @@ import asyncio
 import logging
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Generic, TypeAlias, no_type_check
+from datetime import timedelta
+from typing import Any, Generic, TypeAlias, no_type_check
 from uuid import uuid4
 
 from asyncpg import Pool
@@ -32,8 +33,12 @@ class PostgresWriterSettings(Generic[DataType], DataWriterSettings[DataType]):
     id_fields: list[str]
     id_sql_type: str
     version_field: str
+    soft_delete_field: str | None = None
+    soft_delete_value: bool = True
     enum_chunks_table: str | None = None
     process_eos: bool = False
+    lock_attempts: int = 5
+    lock_fail_delay: timedelta = timedelta(seconds=1)
 
 
 class PostgresWriter(Generic[DataType], DataWriter[DataType]):
@@ -169,12 +174,12 @@ class PostgresWriter(Generic[DataType], DataWriter[DataType]):
 
                 if not rows_count:
                     fail_count += 1
-                    if fail_count > 5:
+                    if fail_count > settings.lock_attempts:
                         log.error(
                             "failed to lock %d rows in the database", len(ids_left)
                         )
                         raise LockError()
-                    await asyncio.sleep(1)
+                    await asyncio.sleep(settings.lock_fail_delay.total_seconds())
                 elif rows_count == len(ids_left):
                     break
                 else:
@@ -185,6 +190,82 @@ class PostgresWriter(Generic[DataType], DataWriter[DataType]):
                     )
                     ids_left = [tuple(rec.values()) for rec in result]
                     rows = [row for row in rows if self._id_tuple(row) in ids_left]
+
+    async def delete_with_lock(
+        self, conn: PoolConnectionProxy, before_version: Version
+    ) -> None:
+        settings = self.settings
+        table = settings.table
+        version_field = settings.version_field
+        soft_delete_field = settings.soft_delete_field
+        soft_delete_value = settings.soft_delete_value
+
+        deleted_count = 0
+        fail_count = 0
+        while True:
+            async with conn.transaction():
+
+                args: list[Any] = [before_version]
+                if soft_delete_field:
+                    not_deleted_sql = f'"{soft_delete_field}" != $2'
+                    args.append(soft_delete_value)
+                else:
+                    not_deleted_sql = "(true)"
+
+                result = await conn.fetch(
+                    f"""
+                    SELECT {self._id_fields_sql(table)}
+                    FROM "{table}"
+                    WHERE "{version_field}" < $1 AND {not_deleted_sql}
+                    """,
+                    *args,
+                )
+                ids_left: list[tuple] = [tuple(rec.values()) for rec in result]
+
+                if not ids_left:
+                    break
+
+                args = [self._ids_to_arg(ids_left)]
+                if soft_delete_field:
+                    delete_sql = f"""
+                        UPDATE "{table}"
+                        SET {soft_delete_field} = $2,
+                            {version_field} = $3
+                    """
+                    args.extend([soft_delete_value, before_version])
+                else:
+                    delete_sql = f"""
+                        DELETE FROM "{table}"
+                    """
+
+                status = await conn.execute(
+                    f"""
+                    WITH locked AS (
+                        SELECT {self._id_fields_sql(table)}
+                        FROM "{table}"
+                        WHERE
+                            {self._id_row_sql(table)}
+                            = any($1::{settings.id_sql_type}[])
+                        FOR UPDATE SKIP LOCKED
+                    )
+                    {delete_sql}
+                    WHERE
+                        {self._id_row_sql(table)}
+                        IN (SELECT {self._id_fields_sql("locked")} FROM locked)
+                    """,
+                    *args,
+                )
+                rows_count = int(status.split()[-1])
+                deleted_count += rows_count
+
+                if not rows_count:
+                    fail_count += 1
+                    if fail_count > settings.lock_attempts:
+                        log.error("Failed to lock %d rows in database", len(ids_left))
+                        raise LockError()
+                    await asyncio.sleep(settings.lock_fail_delay.total_seconds())
+                elif rows_count == len(ids_left):
+                    break
 
     async def process(self, batch: list[DataType]) -> None:
         settings = self.settings
@@ -217,3 +298,6 @@ class PostgresWriter(Generic[DataType], DataWriter[DataType]):
         async with pool.acquire() as conn:
             if upsert_rows:
                 await self.upsert_with_lock(conn, list(upsert_rows.values()))
+            if eos_versions:
+                max_ver = max(eos_versions)
+                await self.delete_with_lock(conn, max_ver)

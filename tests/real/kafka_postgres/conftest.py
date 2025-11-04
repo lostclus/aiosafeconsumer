@@ -31,7 +31,7 @@ async def postgres_pool(postgres_url: str) -> AsyncGenerator[Pool]:
                 ev_time timestamptz,
                 ev_type varchar,
                 ev_source varchar,
-                id int,
+                id int PRIMARY KEY,
                 email varchar,
                 score decimal,
                 is_active boolean
@@ -76,6 +76,9 @@ def worker_pool_settings(
                         id_fields=["id"],
                         id_sql_type="int",
                         version_field="ev_time",
+                        process_eos=True,
+                        # soft_delete_field="is_active",
+                        # soft_delete_value=False,
                     ),
                 ),
             ),
