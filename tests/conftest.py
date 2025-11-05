@@ -26,6 +26,8 @@ if not os.getenv("KAFKA_BOOTSTRAP_SERVERS") and not os.getenv("ELASTICSEARCH_URL
     collect_ignore.append("real/kafka_elasticsearch")
 if not os.getenv("KAFKA_BOOTSTRAP_SERVERS") and not os.getenv("MONGODB_URI"):
     collect_ignore.append("real/kafka_mongo")
+if not os.getenv("KAFKA_BOOTSTRAP_SERVERS") and not os.getenv("POSTGRES_URL"):
+    collect_ignore.append("real/kafka_postgres")
 
 
 _LOGGING = {
