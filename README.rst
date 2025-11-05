@@ -57,6 +57,10 @@ Install with MongoDB::
 
     pip install aiosafeconsumer[mongo]
 
+Install with PostgreSQL::
+
+    pip install aiosafeconsumer[postgres]
+
 Links:
 
 * Producer library: https://github.com/lostclus/django-kafka-streamer
@@ -64,5 +68,6 @@ Links:
 
 TODO:
 
-* PostgreSQL writer
+* Redis Streams source
+* Enumerate IDs message type support in PostgreSQL writer
 * ClickHouse writer
