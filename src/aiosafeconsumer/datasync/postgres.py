@@ -1,12 +1,13 @@
 import asyncio
 import logging
 from collections.abc import Callable
+from contextlib import AbstractAsyncContextManager
 from dataclasses import dataclass
 from datetime import timedelta
 from typing import Any, Generic, TypeAlias, no_type_check
 from uuid import uuid4
 
-from asyncpg import Pool
+from asyncpg import Connection
 from asyncpg.pool import PoolConnectionProxy
 
 from aiosafeconsumer.datasync import Version
@@ -17,6 +18,7 @@ from .types import EnumerateIDsRecord, EventType
 
 log = logging.getLogger(__name__)
 
+AsyncPGConnection: TypeAlias = Connection | PoolConnectionProxy
 TupleID: TypeAlias = tuple
 
 
@@ -26,7 +28,7 @@ class LockError(Exception):
 
 @dataclass
 class PostgresWriterSettings(Generic[DataType], DataWriterSettings[DataType]):
-    connection_pool: Callable[[], Pool]
+    connection_manager: Callable[[], AbstractAsyncContextManager[AsyncPGConnection]]
     record_serializer: Callable[[DataType], dict]
     table: str
     fields: list[str]
@@ -75,9 +77,7 @@ class PostgresWriter(Generic[DataType], DataWriter[DataType]):
             return 1
         return 0
 
-    async def upsert_with_lock(
-        self, conn: PoolConnectionProxy, rows: list[dict]
-    ) -> None:
+    async def upsert_with_lock(self, conn: AsyncPGConnection, rows: list[dict]) -> None:
         settings = self.settings
         table = settings.table
         fields = settings.fields
@@ -192,7 +192,7 @@ class PostgresWriter(Generic[DataType], DataWriter[DataType]):
                     rows = [row for row in rows if self._id_tuple(row) in ids_left]
 
     async def delete_with_lock(
-        self, conn: PoolConnectionProxy, before_version: Version
+        self, conn: AsyncPGConnection, before_version: Version
     ) -> None:
         settings = self.settings
         table = settings.table
@@ -269,7 +269,6 @@ class PostgresWriter(Generic[DataType], DataWriter[DataType]):
 
     async def process(self, batch: list[DataType]) -> None:
         settings = self.settings
-        pool = settings.connection_pool()
 
         enum_records: dict[Version, list[EnumerateIDsRecord]] = {}
         eos_versions: set[Version] = set()
@@ -295,7 +294,7 @@ class PostgresWriter(Generic[DataType], DataWriter[DataType]):
                     upsert_rows[obj_id] = row
                     upsert_versions[obj_id] = rec_ver
 
-        async with pool.acquire() as conn:
+        async with settings.connection_manager() as conn:
             if upsert_rows:
                 await self.upsert_with_lock(conn, list(upsert_rows.values()))
             if eos_versions:

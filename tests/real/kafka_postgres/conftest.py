@@ -70,7 +70,7 @@ def worker_pool_settings(
                     ),
                     processor_class=UsersPostgresWriter,
                     processor_settings=UsersPostgresWriterSettings(
-                        connection_pool=lambda: postgres_pool,
+                        connection_manager=postgres_pool.acquire,
                         table="user",
                         fields=UserRecord._fields,
                         id_fields=["id"],
