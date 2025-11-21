@@ -37,6 +37,7 @@ class PostgresWriterSettings(Generic[DataType], DataWriterSettings[DataType]):
     version_field: str
     soft_delete_field: str | None = None
     soft_delete_value: bool = True
+    exclude_fields: list[str] | None = None
     enum_chunks_table: str | None = None
     process_eos: bool = False
     lock_attempts: int = 5
@@ -80,7 +81,8 @@ class PostgresWriter(Generic[DataType], DataWriter[DataType]):
     async def upsert_with_lock(self, conn: AsyncPGConnection, rows: list[dict]) -> None:
         settings = self.settings
         table = settings.table
-        fields = settings.fields
+        exclude_fields = set(settings.exclude_fields or [])
+        fields = [field for field in settings.fields if field not in exclude_fields]
         version_field = settings.version_field
         id_fields = settings.id_fields
 
@@ -88,8 +90,13 @@ class PostgresWriter(Generic[DataType], DataWriter[DataType]):
         tmp_table = f"{table}_{tmp_suffix}"
         fields_sql = ",".join([f'"{field}"' for field in fields])
 
+        no_update_fields = set(id_fields) | exclude_fields
         set_fields_sql = ",".join(
-            [f'{field} = tmp."{field}"' for field in fields if field not in id_fields]
+            [
+                f'{field} = tmp."{field}"'
+                for field in fields
+                if field not in no_update_fields
+            ]
         )
 
         fail_count = 0
@@ -102,6 +109,13 @@ class PostgresWriter(Generic[DataType], DataWriter[DataType]):
                     ON COMMIT DROP
                     """
                 )
+                for field in exclude_fields:
+                    await conn.execute(
+                        f"""
+                        ALTER TABLE "{tmp_table}" DROP COLUMN "{field}"
+                        """
+                    )
+
                 await conn.copy_records_to_table(
                     tmp_table,
                     records=[tuple(row[field] for field in fields) for row in rows],

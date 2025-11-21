@@ -43,6 +43,13 @@ def users(ev_time: datetime) -> list[UserRecord]:
     ]
 
 
+async def fetch_users(postgres_pool: Pool) -> list[UserRecord]:
+    async with postgres_pool.acquire() as conn:
+        fields_sql = ",".join(UserRecord._fields)
+        rows = await conn.fetch(f'SELECT {fields_sql} FROM "user" ORDER BY id')
+    return [UserRecord(**row) for row in rows]
+
+
 @pytest.mark.asyncio
 async def test_on_empty_table(
     worker_pool_settings: WorkerPoolSettings,
@@ -66,10 +73,7 @@ async def test_on_empty_table(
 
     await task
 
-    async with postgres_pool.acquire() as conn:
-        rows = await conn.fetch('SELECT * FROM "user" ORDER BY id')
-    users_in_postgres = [UserRecord(**row) for row in rows]
-
+    users_in_postgres = await fetch_users(postgres_pool)
     assert users_in_postgres == users
 
 
@@ -108,10 +112,7 @@ async def test_update(
 
     await task
 
-    async with postgres_pool.acquire() as conn:
-        rows = await conn.fetch('SELECT * FROM "user" ORDER BY id')
-    users_in_postgres = [UserRecord(**row) for row in rows]
-
+    users_in_postgres = await fetch_users(postgres_pool)
     assert users_in_postgres[0] == initial_users[0]
     assert users_in_postgres[1] == users[1]
 
@@ -163,8 +164,5 @@ async def test_eos(
 
     await task
 
-    async with postgres_pool.acquire() as conn:
-        rows = await conn.fetch('SELECT * FROM "user" ORDER BY id')
-    users_in_postgres = [UserRecord(**row) for row in rows]
-
+    users_in_postgres = await fetch_users(postgres_pool)
     assert users_in_postgres == users
