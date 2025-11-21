@@ -79,6 +79,7 @@ def worker_pool_settings(
                         process_eos=True,
                         # soft_delete_field="is_active",
                         # soft_delete_value=False,
+                        # exclude_fields=["created_time"],
                     ),
                 ),
             ),
