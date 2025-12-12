@@ -76,7 +76,7 @@ async def test_on_empty_db(
 
     await task
 
-    versions = await redis.hgetall(b"users")
+    versions = await redis.hgetall(b"users")  # type: ignore[arg-type, misc]
     assert versions == {
         encode_id(1): encode_version(ev_time),
         encode_id(2): encode_version(ev_time),
@@ -127,7 +127,7 @@ async def test_update(
 
     await task
 
-    versions = await redis.hgetall(b"users")
+    versions = await redis.hgetall(b"users")  # type: ignore[arg-type, misc]
     assert versions == {
         encode_id(1): encode_version(ev_time + timedelta(minutes=1)),
         encode_id(2): encode_version(ev_time),
