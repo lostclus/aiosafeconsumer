@@ -33,8 +33,11 @@ Abstractions:
 Current implementations:
 
 * `KafkaSource` - read data from Kafka
+* `RedisStreamSource` - read data from Redis Streams
 * `RedisWriter` - synchronize data in Redis
 * `ElasticsearchWriter` - synchronize data in Elasticsearch
+* `MongoDBWriter` - synchronize data in MongoDB
+* `PostgresWriter` - synchronize data in PostgreSQL
 * `WorkerPool` - controller to setup and run workers in parallel. Can handle worker failures and restarts workers when it fails or exits.
 
 Install::
@@ -68,6 +71,5 @@ Links:
 
 TODO:
 
-* Redis Streams source
 * Enumerate IDs message type support in PostgreSQL writer
 * ClickHouse writer

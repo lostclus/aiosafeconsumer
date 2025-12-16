@@ -69,7 +69,9 @@ class RedisWriter(Generic[DataType], DataWriter[DataType]):
         return 0
 
     async def _get_versions(self, redis: Redis) -> dict[StrID, Version]:
-        raw_versions = await redis.hgetall(self._versions_key())
+        raw_versions = await redis.hgetall(  # type: ignore[misc]
+            self._versions_key()  # type: ignore[arg-type]
+        )
 
         versions: dict[StrID, Version] = {
             raw_id.decode(): self.settings.version_deserializer(raw_ver)
@@ -224,13 +226,13 @@ class RedisWriter(Generic[DataType], DataWriter[DataType]):
 
         async with redis.pipeline(transaction=True) as pipe:
             if update_records:
-                pipe.mset(update_records)  # type: ignore
+                pipe.mset(update_records)
             for key in update_records.keys():
                 pipe.expire(key, settings.record_expire)
             if del_records:
                 pipe.delete(*del_records)
             if del_versions:
-                pipe.hdel(self._versions_key(), *del_versions)
+                pipe.hdel(self._versions_key(), *del_versions)  # type: ignore[arg-type]
             if update_versions:
                 pipe.hset(self._versions_key(), mapping=update_versions)  # type: ignore
             pipe.expire(self._versions_key(), settings.versions_expire)
