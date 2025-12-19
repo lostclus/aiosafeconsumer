@@ -1,3 +1,4 @@
+import inspect
 import json
 import types
 import typing
@@ -17,10 +18,11 @@ def namedtuple_to_json_serializer(
 ) -> Callable[[NamedTuple], bytes]:
     def serializer(obj: NamedTuple) -> bytes:
         payload = obj._asdict()
+        obj_ann = inspect.get_annotations(obj.__class__)
 
         for f in obj._fields:
-            f_type = obj.__annotations__[f]
-            if typing.get_origin(f_type) is types.UnionType:
+            f_type = obj_ann[f]
+            if typing.get_origin(f_type) is types.UnionType:  # type: ignore
                 f_type = typing.get_args(f_type)[0]
 
             v = payload[f]
